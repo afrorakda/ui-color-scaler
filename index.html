@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>UI Color Scaler</title>
+    
+    <link rel="icon" href="image_87.png">
+    <link rel="apple-touch-icon" href="image_87.png">
+
+    <style>
+        :root {
+            --main: #333;
+            --bg: #fff;
+            --accent: #ccc;
+            --input-bg: #fafafa;
+            --radius: 15px;
+            --text-gray: #666;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: var(--bg);
+            color: var(--main);
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            min-height: 100vh;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 420px;
+            padding: 40px 20px;
+            box-sizing: border-box;
+            text-align: center;
+        }
+
+        h1 { font-size: 2rem; font-weight: 800; margin-bottom: 8px; letter-spacing: -1px; }
+        .subtitle { font-size: 1rem; color: var(--text-gray); font-weight: 600; margin-bottom: 30px; }
+
+        .input-group { position: relative; text-align: left; margin-bottom: 25px; }
+        .input-label { font-size: 0.9rem; font-weight: 800; color: var(--main); margin-left: 5px; margin-bottom: 8px; display: block; }
+        
+        .color-input-wrapper {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        input[type="text"] {
+            flex: 1;
+            padding: 20px 15px;
+            border: 2px solid var(--accent);
+            border-radius: var(--radius);
+            background: var(--input-bg);
+            font-size: 1.4rem;
+            font-weight: 800;
+            color: var(--main) !important;
+            box-sizing: border-box;
+            outline: none;
+            -webkit-appearance: none;
+            -webkit-text-fill-color: var(--main) !important;
+            opacity: 1 !important;
+            text-transform: uppercase;
+        }
+
+        input[type="color"] {
+            width: 60px;
+            height: 64px;
+            border: 2px solid var(--accent);
+            border-radius: var(--radius);
+            background: none;
+            cursor: pointer;
+            padding: 5px;
+            box-sizing: border-box;
+        }
+
+        .clear-btn {
+            position: absolute;
+            right: 75px;
+            bottom: 15px;
+            background: none;
+            border: none;
+            color: #888;
+            font-size: 1.4rem;
+            font-weight: 800;
+            cursor: pointer;
+            padding: 5px;
+            display: none;
+        }
+        .clear-btn.active { display: block; }
+
+        .scale-section { margin-top: 30px; text-align: left; }
+        .section-title { font-size: 0.8rem; font-weight: 800; color: var(--text-gray); text-transform: uppercase; margin-bottom: 12px; margin-left: 5px; }
+
+        .color-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            margin-bottom: 25px;
+        }
+
+        .color-card {
+            background: #fff;
+            border: 2px solid #eee;
+            border-radius: var(--radius);
+            overflow: hidden;
+            cursor: pointer;
+            transition: transform 0.1s;
+        }
+        .color-card:active { transform: scale(0.96); }
+
+        .swatch {
+            height: 60px;
+            width: 100%;
+        }
+
+        .card-info {
+            padding: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.85rem;
+            font-weight: 800;
+        }
+
+        #toast {
+            position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+            background: var(--main); color: #fff;
+            padding: 12px 24px; border-radius: 20px; font-size: 0.9rem; font-weight: 700;
+            opacity: 0; transition: opacity 0.3s; pointer-events: none; z-index: 1000;
+        }
+
+        footer { margin-top: 60px; font-size: 12px; color: #777; line-height: 1.8; font-weight: 500; }
+        footer a { color: inherit; text-decoration: underline; }
+        .footer-btns { margin-top: 30px; }
+        .kofi-btn {
+            display: inline-block; background: var(--main); color: #fff;
+            padding: 14px 28px; border-radius: var(--radius);
+            text-decoration: none; font-weight: bold; font-size: 15px; margin-bottom: 15px;
+        }
+        .home-btn {
+            display: block; width: 70%; margin: 0 auto; background: var(--accent);
+            color: var(--main); border: none; padding: 12px;
+            border-radius: var(--radius); font-weight: 800; font-size: 14px; cursor: pointer;
+        }
+
+        #modal {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.6); align-items: center; justify-content: center; z-index: 100;
+        }
+        .modal-content {
+            background: #fff; width: 85%; max-width: 340px; padding: 35px;
+            border-radius: var(--radius); text-align: left; position: relative;
+        }
+        .close-x { position: absolute; top: 15px; right: 20px; font-size: 24px; color: #888; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+<div id="toast">Copied!</div>
+
+<div class="container">
+    <h1>Color Scaler</h1>
+    <p class="subtitle">Logical tone generator for UI.</p>
+
+    <div class="input-group">
+        <span class="input-label">Base Color (HEX)</span>
+        <div class="color-input-wrapper">
+            <input type="text" id="hexInput" value="#333333" maxlength="7" oninput="updateFromText()">
+            <input type="color" id="pickerInput" value="#333333" oninput="updateFromPicker()">
+            <button class="clear-btn" id="clr-btn" onclick="clearInput()">×</button>
+        </div>
+    </div>
+
+    <div class="scale-section">
+        <div class="section-title">Brightness Scale</div>
+        <div class="color-grid" id="scaleGrid"></div>
+        
+        <div class="section-title">Complementary</div>
+        <div class="color-grid" id="compGrid"></div>
+    </div>
+
+    <div class="footer-btns">
+        <a href="https://ko-fi.com/afrorakda" target="_blank" class="kofi-btn">☕️buy me a coffee</a>
+        <button class="home-btn" onclick="showModal()">Add to Home Screen</button>
+    </div>
+
+    <footer>
+        <div>No login / No tracking / No ads / Browser only</div>
+        <div><a href="https://afrorakda.com/privacy/">Privacy Policy</a> / afrorakda © 2026</div>
+    </footer>
+</div>
+
+<div id="modal" onclick="hideModal()">
+    <div class="modal-content" onclick="event.stopPropagation()">
+        <span class="close-x" onclick="hideModal()">×</span>
+        <h3>📱 Install</h3>
+        <p>Add to your home screen.</p>
+        <p>🍏 <strong>iPhone (Safari):</strong><br>Tap Share, then Add to Home Screen.</p>
+        <p>🤖 <strong>Android (Chrome):</strong><br>Tap Menu (⋮), then Add to Home Screen.</p>
+    </div>
+</div>
+
+<script>
+    const hexInput = document.getElementById('hexInput');
+    const pickerInput = document.getElementById('pickerInput');
+    const clrBtn = document.getElementById('clr-btn');
+    const scaleGrid = document.getElementById('scaleGrid');
+    const compGrid = document.getElementById('compGrid');
+    const toast = document.getElementById('toast');
+
+    function updateFromText() {
+        let val = hexInput.value;
+        if (!val.startsWith('#')) val = '#' + val;
+        hexInput.value = val.replace(/[^#0-9a-fA-F]/g, '');
+        
+        if (hexInput.value.length === 7) {
+            pickerInput.value = hexInput.value;
+            generateScale();
+        }
+        updateClearBtn();
+    }
+
+    function updateFromPicker() {
+        hexInput.value = pickerInput.value.toUpperCase();
+        generateScale();
+        updateClearBtn();
+    }
+
+    function updateClearBtn() {
+        clrBtn.classList.toggle('active', hexInput.value !== '');
+    }
+
+    function clearInput() {
+        hexInput.value = '';
+        updateClearBtn();
+        hexInput.focus();
+    }
+
+    function generateScale() {
+        const hex = pickerInput.value;
+        const hsl = hexToHsl(hex);
+        
+        scaleGrid.innerHTML = '';
+        // 10% to 90% Lightness
+        const steps = [95, 80, 60, 40, 20, 5];
+        steps.forEach(l => {
+            renderCard(scaleGrid, `hsl(${hsl.h}, ${hsl.s}%, ${l}%)`);
+        });
+
+        compGrid.innerHTML = '';
+        const compH = (hsl.h + 180) % 360;
+        renderCard(compGrid, `hsl(${compH}, ${hsl.s}%, ${hsl.l}%)`);
+    }
+
+    function renderCard(container, color) {
+        const hex = hslToHex(color);
+        const card = document.createElement('div');
+        card.className = 'color-card';
+        card.onclick = () => copyText(hex);
+        card.innerHTML = `
+            <div class="swatch" style="background: ${color}"></div>
+            <div class="card-info">
+                <span>${hex}</span>
+                <span style="color: var(--accent)">●</span>
+            </div>
+        `;
+        container.appendChild(card);
+    }
+
+    async function copyText(txt) {
+        try {
+            await navigator.clipboard.writeText(txt);
+            toast.style.opacity = '1';
+            setTimeout(() => toast.style.opacity = '0', 1500);
+        } catch (err) {}
+    }
+
+    function hexToHsl(hex) {
+        let r = parseInt(hex.slice(1, 3), 16) / 255;
+        let g = parseInt(hex.slice(3, 5), 16) / 255;
+        let b = parseInt(hex.slice(5, 7), 16) / 255;
+        let max = Math.max(r, g, b), min = Math.min(r, g, b);
+        let h, s, l = (max + min) / 2;
+        if (max === min) { h = s = 0; } else {
+            let d = max - min;
+            s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+            switch (max) {
+                case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+                case g: h = (b - r) / d + 2; break;
+                case b: h = (r - g) / d + 4; break;
+            }
+            h /= 6;
+        }
+        return { h: Math.round(h * 360), s: Math.round(s * 100), l: Math.round(l * 100) };
+    }
+
+    function hslToHex(hslStr) {
+        const matches = hslStr.match(/\d+/g);
+        let h = matches[0] / 360, s = matches[1] / 100, l = matches[2] / 100;
+        let r, g, b;
+        if (s === 0) { r = g = b = l; } else {
+            const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+            const p = 2 * l - q;
+            r = hue2rgb(p, q, h + 1/3);
+            g = hue2rgb(p, q, h);
+            b = hue2rgb(p, q, h - 1/3);
+        }
+        const toHex = x => Math.round(x * 255).toString(16).padStart(2, '0').toUpperCase();
+        return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+    }
+
+    function hue2rgb(p, q, t) {
+        if (t < 0) t += 1; if (t > 1) t -= 1;
+        if (t < 1/6) return p + (q - p) * 6 * t;
+        if (t < 1/2) return q;
+        if (t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+        return p;
+    }
+
+    function showModal() { document.getElementById('modal').style.display = 'flex'; }
+    function hideModal() { document.getElementById('modal').style.display = 'none'; }
+
+    generateScale();
+</script>
+
+</body>
+</html>
