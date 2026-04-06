@@ -47,10 +47,9 @@
             display: flex;
             gap: 12px;
             align-items: center;
-            position: relative;
         }
 
-        /* 不変の#を実現するためのラッパー */
+        /* 不変の#を実現するための構造 */
         .hex-input-container {
             flex: 1;
             position: relative;
@@ -65,11 +64,12 @@
             font-weight: 800;
             color: var(--main);
             pointer-events: none;
+            z-index: 2;
         }
 
         input[type="text"] {
             width: 100%;
-            padding: 20px 15px 20px 35px; /* #の分だけ左パディング */
+            padding: 20px 45px 20px 35px; /* 右にクリアボタン、左に#の余白 */
             border: 2px solid var(--accent);
             border-radius: var(--radius);
             background: var(--input-bg);
@@ -83,10 +83,29 @@
             opacity: 1 !important;
         }
 
+        .clear-btn {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: #888;
+            font-size: 1.4rem;
+            font-weight: 800;
+            cursor: pointer;
+            padding: 5px;
+            z-index: 3;
+            display: none;
+        }
+        .clear-btn.active { display: block; }
+
+        /* カラーピッカーボタンの主役化 */
         .picker-btn-wrapper {
             width: 65px;
             height: 64px;
             flex-shrink: 0;
+            position: relative;
         }
 
         input[type="color"] {
@@ -101,23 +120,8 @@
             outline: none;
             -webkit-appearance: none;
         }
-        input[type="color"]::-webkit-color-swatch-wrapper { padding: 8px; }
+        input[type="color"]::-webkit-color-swatch-wrapper { padding: 6px; }
         input[type="color"]::-webkit-color-swatch { border-radius: 10px; border: none; }
-
-        .clear-btn {
-            position: absolute;
-            right: 10px;
-            top: 50%;
-            transform: translateY(-50%);
-            background: none;
-            border: none;
-            color: #888;
-            font-size: 1.4rem;
-            font-weight: 800;
-            cursor: pointer;
-            padding: 5px;
-            z-index: 2;
-        }
 
         .scale-section { margin-top: 30px; text-align: left; }
         .section-title { font-size: 0.8rem; font-weight: 800; color: var(--text-gray); text-transform: uppercase; margin-bottom: 12px; margin-left: 5px; }
@@ -142,9 +146,6 @@
         .swatch {
             height: 65px;
             width: 100%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
         }
 
         .card-info {
@@ -251,10 +252,11 @@
     const toast = document.getElementById('toast');
 
     function updateFromText() {
-        // 先頭の#を削除し、英数字以外を排除、大文字化
+        // #除去、英数字のみ、大文字化
         let val = hexInput.value.replace(/#/g, '').replace(/[^0-9a-fA-F]/g, '').toUpperCase();
         hexInput.value = val;
         
+        updateClearBtn();
         if (val.length === 6) {
             pickerInput.value = '#' + val;
             generateScale();
@@ -262,14 +264,20 @@
     }
 
     function updateFromPicker() {
-        hexInput.value = pickerInput.value.replace('#', '').toUpperCase();
+        const hex = pickerInput.value.toUpperCase();
+        hexInput.value = hex.replace('#', '');
+        updateClearBtn();
         generateScale();
+    }
+
+    function updateClearBtn() {
+        clrBtn.classList.toggle('active', hexInput.value.length > 0);
     }
 
     function clearInput() {
         hexInput.value = '';
+        updateClearBtn();
         hexInput.focus();
-        // スケールは空にせず維持するか、デフォルトに戻す（ここでは現状維持）
     }
 
     function generateScale() {
@@ -376,6 +384,8 @@
     function showModal() { document.getElementById('modal').style.display = 'flex'; }
     function hideModal() { document.getElementById('modal').style.display = 'none'; }
 
+    // 初期化
+    updateClearBtn();
     generateScale();
 </script>
 
