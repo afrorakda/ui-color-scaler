@@ -47,11 +47,29 @@
             display: flex;
             gap: 12px;
             align-items: center;
+            position: relative;
+        }
+
+        /* 不変の#を実現するためのラッパー */
+        .hex-input-container {
+            flex: 1;
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        .prefix {
+            position: absolute;
+            left: 15px;
+            font-size: 1.4rem;
+            font-weight: 800;
+            color: var(--main);
+            pointer-events: none;
         }
 
         input[type="text"] {
-            flex: 1;
-            padding: 20px 15px;
+            width: 100%;
+            padding: 20px 15px 20px 35px; /* #の分だけ左パディング */
             border: 2px solid var(--accent);
             border-radius: var(--radius);
             background: var(--input-bg);
@@ -63,19 +81,15 @@
             -webkit-appearance: none;
             -webkit-text-fill-color: var(--main) !important;
             opacity: 1 !important;
-            text-transform: uppercase;
         }
 
-        /* 視認性を劇的に向上させたカラーピッカーボタン */
         .picker-btn-wrapper {
-            position: relative;
             width: 65px;
             height: 64px;
+            flex-shrink: 0;
         }
 
         input[type="color"] {
-            position: absolute;
-            top: 0; left: 0;
             width: 100%; height: 100%;
             border: 2px solid var(--accent);
             border-radius: var(--radius);
@@ -87,14 +101,14 @@
             outline: none;
             -webkit-appearance: none;
         }
-        /* iOS Safari用のスタイル調整 */
         input[type="color"]::-webkit-color-swatch-wrapper { padding: 8px; }
         input[type="color"]::-webkit-color-swatch { border-radius: 10px; border: none; }
 
         .clear-btn {
             position: absolute;
-            right: 85px;
-            bottom: 15px;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
             background: none;
             border: none;
             color: #888;
@@ -102,10 +116,8 @@
             font-weight: 800;
             cursor: pointer;
             padding: 5px;
-            display: none;
             z-index: 2;
         }
-        .clear-btn.active { display: block; }
 
         .scale-section { margin-top: 30px; text-align: left; }
         .section-title { font-size: 0.8rem; font-weight: 800; color: var(--text-gray); text-transform: uppercase; margin-bottom: 12px; margin-left: 5px; }
@@ -133,7 +145,6 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            position: relative;
         }
 
         .card-info {
@@ -146,11 +157,7 @@
             border-top: 1px solid #eee;
         }
 
-        /* 文字色シミュレーション用の丸 */
-        .text-color-dot {
-            font-size: 1.2rem;
-            font-weight: 800;
-        }
+        .text-color-dot { font-size: 1.2rem; font-weight: 800; }
 
         #toast {
             position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
@@ -195,11 +202,14 @@
     <div class="input-group">
         <span class="input-label">Base Color (HEX)</span>
         <div class="color-input-wrapper">
-            <input type="text" id="hexInput" value="#333333" maxlength="7" oninput="updateFromText()">
+            <div class="hex-input-container">
+                <span class="prefix">#</span>
+                <input type="text" id="hexInput" value="333333" maxlength="6" inputmode="url" autocapitalize="characters" oninput="updateFromText()">
+                <button class="clear-btn" id="clr-btn" onclick="clearInput()">×</button>
+            </div>
             <div class="picker-btn-wrapper">
                 <input type="color" id="pickerInput" value="#333333" oninput="updateFromPicker()">
             </div>
-            <button class="clear-btn" id="clr-btn" onclick="clearInput()">×</button>
         </div>
     </div>
 
@@ -241,31 +251,25 @@
     const toast = document.getElementById('toast');
 
     function updateFromText() {
-        let val = hexInput.value;
-        if (!val.startsWith('#')) val = '#' + val;
-        hexInput.value = val.replace(/[^#0-9a-fA-F]/g, '');
+        // 先頭の#を削除し、英数字以外を排除、大文字化
+        let val = hexInput.value.replace(/#/g, '').replace(/[^0-9a-fA-F]/g, '').toUpperCase();
+        hexInput.value = val;
         
-        if (hexInput.value.length === 7) {
-            pickerInput.value = hexInput.value;
+        if (val.length === 6) {
+            pickerInput.value = '#' + val;
             generateScale();
         }
-        updateClearBtn();
     }
 
     function updateFromPicker() {
-        hexInput.value = pickerInput.value.toUpperCase();
+        hexInput.value = pickerInput.value.replace('#', '').toUpperCase();
         generateScale();
-        updateClearBtn();
-    }
-
-    function updateClearBtn() {
-        clrBtn.classList.toggle('active', hexInput.value !== '');
     }
 
     function clearInput() {
         hexInput.value = '';
-        updateClearBtn();
         hexInput.focus();
+        // スケールは空にせず維持するか、デフォルトに戻す（ここでは現状維持）
     }
 
     function generateScale() {
@@ -273,10 +277,8 @@
         if (!hex || hex.length !== 7) return;
 
         const hsl = hexToHsl(hex);
-        const rgb = hexToRgb(hex);
         
         scaleGrid.innerHTML = '';
-        // Logical brightness steps (95% to 5%)
         const steps = [95, 80, 60, 40, 20, 5];
         steps.forEach(l => {
             renderCard(scaleGrid, `hsl(${hsl.h}, ${hsl.s}%, ${l}%)`);
@@ -290,7 +292,6 @@
     function renderCard(container, color) {
         const hex = hslToHex(color);
         const rgb = hslToRgb(color);
-        // Calculate WCAG compliant text color (black or white)
         const textColor = getContrastColor(rgb.r, rgb.g, rgb.b);
 
         const card = document.createElement('div');
@@ -314,10 +315,7 @@
         } catch (err) {}
     }
 
-    // --- Color Conversion Helpers ---
-
     function getContrastColor(r, g, b) {
-        // WCAG luminance formula
         const yiq = ((r * 299) + (g * 587) + (b * 114)) / 1000;
         return (yiq >= 128) ? '#000000' : '#ffffff';
     }
